@@ -1,119 +1,34 @@
--- Mini Yield: Simple Command Script with WASD Fly
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
-local UserInputService = game:GetService("UserInputService")
-
 local player = Players.LocalPlayer
-local PlayerGui = player:WaitForChild("PlayerGui")
+local character = player.Character or player.CharacterAdded:Wait()
+local humanoid = character:WaitForChild("Humanoid")
 
--- Create GUI
-local gui = Instance.new("ScreenGui")
-gui.Name = "MiniYieldGui"
-gui.ResetOnSpawn = false
-gui.Parent = PlayerGui
+-- Create a new animation instance
+local anim = Instance.new("Animation")
+anim.AnimationId = "rbxassetid://0" -- doesn't matter since we'll use Humanoid:LoadAnimation
 
-local input = Instance.new("TextBox")
-input.Size = UDim2.new(0, 300, 0, 30)
-input.Position = UDim2.new(0, 10, 0, 10)
-input.PlaceholderText = "Enter command (e.g., ;fly)"
-input.Text = ""
-input.ClearTextOnFocus = false
-input.Parent = gui
+-- Manually create animation track
+local animator = humanoid:FindFirstChildOfClass("Animator")
+if not animator then
+	animator = Instance.new("Animator")
+	animator.Parent = humanoid
+end
 
--- Command system
-local Commands = {}
+-- Load the blank animation
+local track = animator:LoadAnimation(anim)
 
--- WASD Fly
-Commands[";fly"] = function()
-	local char = player.Character or player.CharacterAdded:Wait()
-	local hrp = char:WaitForChild("HumanoidRootPart")
-
-	local flying = true
-	local speed = 50
-	local movement = {w=false,s=false,a=false,d=false,up=false,down=false}
-
-	local gyro = Instance.new("BodyGyro", hrp)
-	gyro.P = 9e4
-	gyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-	gyro.CFrame = hrp.CFrame
-
-	local vel = Instance.new("BodyVelocity", hrp)
-	vel.Velocity = Vector3.new(0,0,0)
-	vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-
-	local function updateDirection()
-		local cam = workspace.CurrentCamera
-		local dir = Vector3.new()
-		if movement.w then dir = dir + cam.CFrame.LookVector end
-		if movement.s then dir = dir - cam.CFrame.LookVector end
-		if movement.a then dir = dir - cam.CFrame.RightVector end
-		if movement.d then dir = dir + cam.CFrame.RightVector end
-		if movement.up then dir = dir + Vector3.new(0,1,0) end
-		if movement.down then dir = dir - Vector3.new(0,1,0) end
-		return dir
-	end
-
-	local conn1 = UserInputService.InputBegan:Connect(function(input)
-		local key = input.KeyCode
-		if key == Enum.KeyCode.W then movement.w = true end
-		if key == Enum.KeyCode.S then movement.s = true end
-		if key == Enum.KeyCode.A then movement.a = true end
-		if key == Enum.KeyCode.D then movement.d = true end
-		if key == Enum.KeyCode.Space then movement.up = true end
-		if key == Enum.KeyCode.LeftShift then movement.down = true end
-	end)
-
-	local conn2 = UserInputService.InputEnded:Connect(function(input)
-		local key = input.KeyCode
-		if key == Enum.KeyCode.W then movement.w = false end
-		if key == Enum.KeyCode.S then movement.s = false end
-		if key == Enum.KeyCode.A then movement.a = false end
-		if key == Enum.KeyCode.D then movement.d = false end
-		if key == Enum.KeyCode.Space then movement.up = false end
-		if key == Enum.KeyCode.LeftShift then movement.down = false end
-	end)
-
-	_G._flyStuff = {gyro, vel, conn1, conn2}
-
-	coroutine.wrap(function()
-		while flying and player.Character and hrp do
-			local dir = updateDirection()
-			if dir.Magnitude > 0 then
-				dir = dir.Unit * speed
+-- Keyframe-based manual motion (example funky wiggle)
+coroutine.wrap(function()
+	while true do
+		local root = character:FindFirstChild("HumanoidRootPart")
+		if root then
+			for angle = 0, 360, 30 do
+				local rad = math.rad(angle)
+				root.CFrame = root.CFrame * CFrame.Angles(0, math.sin(rad) * 0.1, 0)
+				wait(0.05)
 			end
-			vel.Velocity = dir
-			gyro.CFrame = workspace.CurrentCamera.CFrame
-			task.wait()
-		end
-	end)()
-end
-
--- Unfly
-Commands[";unfly"] = function()
-	if _G._flyStuff then
-		for _, item in pairs(_G._flyStuff) do
-			if typeof(item) == "Instance" then item:Destroy()
-			elseif typeof(item) == "RBXScriptConnection" then item:Disconnect() end
 		end
 	end
-end
+end)()
 
--- Rejoin
-Commands[";rejoin"] = function()
-	TeleportService:Teleport(game.PlaceId, player)
-end
-
--- Input handling
-input.FocusLost:Connect(function(enterPressed)
-	if enterPressed then
-		local cmd = input.Text:lower()
-		if Commands[cmd] then
-			Commands[cmd]()
-		else
-			warn("Unknown command: " .. cmd)
-		end
-		input.Text = ""
-	end
-end)
-
-print("✅ Mini Yield Loaded — use ;fly, ;unfly, ;rejoin")
+track:Play()
