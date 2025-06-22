@@ -1,0 +1,58 @@
+-- Mini Yield - Custom Command Script
+
+-- Create GUI
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "MiniYieldGui"
+ScreenGui.ResetOnSpawn = false
+
+local TextBox = Instance.new("TextBox")
+TextBox.Size = UDim2.new(0, 300, 0, 30)
+TextBox.Position = UDim2.new(0, 10, 0, 10)
+TextBox.PlaceholderText = "Enter command, e.g., ;fly"
+TextBox.Text = ""
+TextBox.Parent = ScreenGui
+
+ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
+
+-- Basic Commands Table
+local Commands = {}
+
+Commands[";fly"] = function()
+	local humanoid = game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if humanoid then
+		local bodyVelocity = Instance.new("BodyVelocity")
+		bodyVelocity.Velocity = Vector3.new(0, 50, 0)
+		bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
+		bodyVelocity.Parent = humanoid
+	end
+end
+
+Commands[";unfly"] = function()
+	local hrp = game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+	if hrp then
+		for _, v in pairs(hrp:GetChildren()) do
+			if v:IsA("BodyVelocity") then
+				v:Destroy()
+			end
+		end
+	end
+end
+
+Commands[";rejoin"] = function()
+	game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
+end
+
+-- Handle Command Entry
+TextBox.FocusLost:Connect(function(enterPressed)
+	if enterPressed then
+		local command = TextBox.Text:lower()
+		if Commands[command] then
+			Commands[command]()
+		else
+			warn("Unknown command: " .. command)
+		end
+		TextBox.Text = ""
+	end
+end)
+
+print("✅ Mini Yield loaded. Use ;fly, ;unfly, ;rejoin")
