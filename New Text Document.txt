@@ -1,58 +1,119 @@
--- Mini Yield - Custom Command Script
+-- Mini Yield: Simple Command Script with WASD Fly
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local PlayerGui = player:WaitForChild("PlayerGui")
 
 -- Create GUI
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MiniYieldGui"
-ScreenGui.ResetOnSpawn = false
+local gui = Instance.new("ScreenGui")
+gui.Name = "MiniYieldGui"
+gui.ResetOnSpawn = false
+gui.Parent = PlayerGui
 
-local TextBox = Instance.new("TextBox")
-TextBox.Size = UDim2.new(0, 300, 0, 30)
-TextBox.Position = UDim2.new(0, 10, 0, 10)
-TextBox.PlaceholderText = "Enter command, e.g., ;fly"
-TextBox.Text = ""
-TextBox.Parent = ScreenGui
+local input = Instance.new("TextBox")
+input.Size = UDim2.new(0, 300, 0, 30)
+input.Position = UDim2.new(0, 10, 0, 10)
+input.PlaceholderText = "Enter command (e.g., ;fly)"
+input.Text = ""
+input.ClearTextOnFocus = false
+input.Parent = gui
 
-ScreenGui.Parent = game:GetService("Players").LocalPlayer:WaitForChild("PlayerGui")
-
--- Basic Commands Table
+-- Command system
 local Commands = {}
 
+-- WASD Fly
 Commands[";fly"] = function()
-	local humanoid = game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if humanoid then
-		local bodyVelocity = Instance.new("BodyVelocity")
-		bodyVelocity.Velocity = Vector3.new(0, 50, 0)
-		bodyVelocity.MaxForce = Vector3.new(0, math.huge, 0)
-		bodyVelocity.Parent = humanoid
-	end
-end
+	local char = player.Character or player.CharacterAdded:Wait()
+	local hrp = char:WaitForChild("HumanoidRootPart")
 
-Commands[";unfly"] = function()
-	local hrp = game:GetService("Players").LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-	if hrp then
-		for _, v in pairs(hrp:GetChildren()) do
-			if v:IsA("BodyVelocity") then
-				v:Destroy()
+	local flying = true
+	local speed = 50
+	local movement = {w=false,s=false,a=false,d=false,up=false,down=false}
+
+	local gyro = Instance.new("BodyGyro", hrp)
+	gyro.P = 9e4
+	gyro.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+	gyro.CFrame = hrp.CFrame
+
+	local vel = Instance.new("BodyVelocity", hrp)
+	vel.Velocity = Vector3.new(0,0,0)
+	vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+
+	local function updateDirection()
+		local cam = workspace.CurrentCamera
+		local dir = Vector3.new()
+		if movement.w then dir = dir + cam.CFrame.LookVector end
+		if movement.s then dir = dir - cam.CFrame.LookVector end
+		if movement.a then dir = dir - cam.CFrame.RightVector end
+		if movement.d then dir = dir + cam.CFrame.RightVector end
+		if movement.up then dir = dir + Vector3.new(0,1,0) end
+		if movement.down then dir = dir - Vector3.new(0,1,0) end
+		return dir
+	end
+
+	local conn1 = UserInputService.InputBegan:Connect(function(input)
+		local key = input.KeyCode
+		if key == Enum.KeyCode.W then movement.w = true end
+		if key == Enum.KeyCode.S then movement.s = true end
+		if key == Enum.KeyCode.A then movement.a = true end
+		if key == Enum.KeyCode.D then movement.d = true end
+		if key == Enum.KeyCode.Space then movement.up = true end
+		if key == Enum.KeyCode.LeftShift then movement.down = true end
+	end)
+
+	local conn2 = UserInputService.InputEnded:Connect(function(input)
+		local key = input.KeyCode
+		if key == Enum.KeyCode.W then movement.w = false end
+		if key == Enum.KeyCode.S then movement.s = false end
+		if key == Enum.KeyCode.A then movement.a = false end
+		if key == Enum.KeyCode.D then movement.d = false end
+		if key == Enum.KeyCode.Space then movement.up = false end
+		if key == Enum.KeyCode.LeftShift then movement.down = false end
+	end)
+
+	_G._flyStuff = {gyro, vel, conn1, conn2}
+
+	coroutine.wrap(function()
+		while flying and player.Character and hrp do
+			local dir = updateDirection()
+			if dir.Magnitude > 0 then
+				dir = dir.Unit * speed
 			end
+			vel.Velocity = dir
+			gyro.CFrame = workspace.CurrentCamera.CFrame
+			task.wait()
+		end
+	end)()
+end
+
+-- Unfly
+Commands[";unfly"] = function()
+	if _G._flyStuff then
+		for _, item in pairs(_G._flyStuff) do
+			if typeof(item) == "Instance" then item:Destroy()
+			elseif typeof(item) == "RBXScriptConnection" then item:Disconnect() end
 		end
 	end
 end
 
+-- Rejoin
 Commands[";rejoin"] = function()
-	game:GetService("TeleportService"):Teleport(game.PlaceId, game:GetService("Players").LocalPlayer)
+	TeleportService:Teleport(game.PlaceId, player)
 end
 
--- Handle Command Entry
-TextBox.FocusLost:Connect(function(enterPressed)
+-- Input handling
+input.FocusLost:Connect(function(enterPressed)
 	if enterPressed then
-		local command = TextBox.Text:lower()
-		if Commands[command] then
-			Commands[command]()
+		local cmd = input.Text:lower()
+		if Commands[cmd] then
+			Commands[cmd]()
 		else
-			warn("Unknown command: " .. command)
+			warn("Unknown command: " .. cmd)
 		end
-		TextBox.Text = ""
+		input.Text = ""
 	end
 end)
 
-print("✅ Mini Yield loaded. Use ;fly, ;unfly, ;rejoin")
+print("✅ Mini Yield Loaded — use ;fly, ;unfly, ;rejoin")
