@@ -1,12 +1,34 @@
-local player = game.Players:FindFirstChild("PlayerName") -- replace with actual player name or variable
-if player and player.Character then
-    local head = player.Character:FindFirstChild("Head")
-    if head then
-        head.Transparency = 1
-        head.CanCollide = false
-        local face = head:FindFirstChild("face")
-        if face then
-            face.Transparency = 1
-        end
-    end
-end
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local head = character:WaitForChild("Head")
+
+-- Create a red beam between original head position and a point way up
+local attachment0 = Instance.new("Attachment", head)
+attachment0.Position = Vector3.new(0, 0, 0) -- at the head
+
+local attachment1 = Instance.new("Attachment")
+attachment1.Position = Vector3.new(0, 100, 0) -- 100 studs above head
+attachment1.Parent = workspace.Terrain -- Parent somewhere in workspace
+
+-- Create beam
+local beam = Instance.new("Beam")
+beam.Color = ColorSequence.new(Color3.new(1, 0, 0)) -- red color
+beam.Attachment0 = attachment0
+beam.Attachment1 = attachment1
+beam.Width0 = 0.2
+beam.Width1 = 0.2
+beam.Parent = head
+
+-- Move the head up 100 studs (invisible "floating" head)
+head.CFrame = head.CFrame + Vector3.new(0, 100, 0)
+head.Anchored = true -- anchor so it doesn't fall
+
+-- Optional: make the original head transparent so it looks like only the high head exists
+head.Transparency = 0
+
+-- Cleanup on character removal
+player.CharacterRemoving:Connect(function()
+    attachment0:Destroy()
+    attachment1:Destroy()
+    beam:Destroy()
+end)
