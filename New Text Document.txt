@@ -1,10 +1,12 @@
-local player = game.Players.LocalPlayer
-if player and player.Character and player.Character:FindFirstChild("Head") then
-    player.Character.Head.Transparency = 1
-    player.Character.Head.CanCollide = false
-    -- Optionally disable the face decal so it doesn't show
-    local face = player.Character.Head:FindFirstChild("face")
-    if face then
-        face.Transparency = 1
+local player = game.Players:FindFirstChild("PlayerName") -- replace with actual player name or variable
+if player and player.Character then
+    local head = player.Character:FindFirstChild("Head")
+    if head then
+        head.Transparency = 1
+        head.CanCollide = false
+        local face = head:FindFirstChild("face")
+        if face then
+            face.Transparency = 1
+        end
     end
 end
