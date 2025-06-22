@@ -1,34 +1,13 @@
-local Players = game:GetService("Players")
-local player = Players.LocalPlayer
-local character = player.Character or player.CharacterAdded:Wait()
-local humanoid = character:WaitForChild("Humanoid")
+local p = Instance.new("Part")
+p.Size = Vector3.new(4,1,4)
+p.Anchored = true
+p.CanCollide = false
+p.Position = game.Players.LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0,5,0)
+p.Parent = workspace
 
--- Create a new animation instance
-local anim = Instance.new("Animation")
-anim.AnimationId = "rbxassetid://0" -- doesn't matter since we'll use Humanoid:LoadAnimation
-
--- Manually create animation track
-local animator = humanoid:FindFirstChildOfClass("Animator")
-if not animator then
-	animator = Instance.new("Animator")
-	animator.Parent = humanoid
-end
-
--- Load the blank animation
-local track = animator:LoadAnimation(anim)
-
--- Keyframe-based manual motion (example funky wiggle)
-coroutine.wrap(function()
-	while true do
-		local root = character:FindFirstChild("HumanoidRootPart")
-		if root then
-			for angle = 0, 360, 30 do
-				local rad = math.rad(angle)
-				root.CFrame = root.CFrame * CFrame.Angles(0, math.sin(rad) * 0.1, 0)
-				wait(0.05)
-			end
-		end
-	end
-end)()
-
-track:Play()
+local hue = 0
+game:GetService("RunService").RenderStepped:Connect(function()
+	hue = (hue + 1) % 360
+	p.Color = Color3.fromHSV(hue/360, 1, 1)
+	p.CFrame = p.CFrame * CFrame.Angles(0, math.rad(3), 0)
+end)
