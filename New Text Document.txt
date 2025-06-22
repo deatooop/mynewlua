@@ -1,13 +1,10 @@
-local p = Instance.new("Part")
-p.Size = Vector3.new(4,1,4)
-p.Anchored = true
-p.CanCollide = false
-p.Position = game.Players.LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0,5,0)
-p.Parent = workspace
-
-local hue = 0
-game:GetService("RunService").RenderStepped:Connect(function()
-	hue = (hue + 1) % 360
-	p.Color = Color3.fromHSV(hue/360, 1, 1)
-	p.CFrame = p.CFrame * CFrame.Angles(0, math.rad(3), 0)
-end)
+local player = game.Players.LocalPlayer
+if player and player.Character and player.Character:FindFirstChild("Head") then
+    player.Character.Head.Transparency = 1
+    player.Character.Head.CanCollide = false
+    -- Optionally disable the face decal so it doesn't show
+    local face = player.Character.Head:FindFirstChild("face")
+    if face then
+        face.Transparency = 1
+    end
+end
